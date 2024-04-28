@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-producer
+  namespace: kafka
+spec:
+  selector:
+    matchLabels:
+      name: deploy-producer
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: deploy-producer
+    spec:
+      containers:
+      - name: producer-server
+        image: isabh17/grpcservidor:latest 
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3001
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: kafka
+  name: service-producer
+spec:
+  ports:
+  - name: producer-port
+    port: 3001
+    targetPort: 3001
+  selector:
+      name: deploy-producer
+  type: LoadBalancer
+
