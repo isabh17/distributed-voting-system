@@ -3,8 +3,6 @@
 ### María Isabel Masaya Córdova
 ### 201800565
 
-### Documentación del Proyecto
-
 #### Introducción
 El proyecto consiste en la implementación de un sistema distribuido de votaciones para un concurso de bandas de música guatemalteca. El objetivo principal es enviar tráfico por medio de archivos con votaciones hacia distintos servicios desplegados en Kubernetes. Estos servicios se encargarán de encolar los datos, almacenarlos en bases de datos y visualizarlos en tiempo real a través de dashboards. Se utilizarán tecnologías como gRPC, Web Assembly (Wasm), Kafka, Redis, MongoDB, Grafana y Cloud Run para lograr este objetivo.
 
