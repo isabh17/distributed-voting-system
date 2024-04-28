@@ -24,7 +24,7 @@ El proyecto consiste en la implementación de un sistema distribuido de votacion
 - **Service de Redis y MongoDB**: Define servicios para acceder a las bases de datos Redis y MongoDB desde los distintos componentes del sistema.
 
 #### Ejemplo de Funcionamiento
-![Ejemplo de Funcionamiento](ejemplo_funcionamiento.png)
+[Ver Ejemplo de Funcionamiento](https://drive.google.com/drive/folders/1p6Za_-bzwUVVi37riiQbuLadXKGuGnm0?usp=drive_link)
 
 En este ejemplo, se muestra el dashboard de Grafana con dos gráficas que visualizan los contadores de votaciones en tiempo real almacenados en Redis. Los datos son actualizados automáticamente y proporcionan una visualización dinámica del flujo de votaciones durante el concurso de bandas.
 
