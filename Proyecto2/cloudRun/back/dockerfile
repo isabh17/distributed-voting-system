@@ -1,0 +1,17 @@
+# Usa una imagen base de Node.js
+FROM node:latest
+
+# Establece el directorio de trabajo dentro del contenedor
+WORKDIR /app
+
+# Copia los archivos del backend al directorio de trabajo
+COPY . .
+
+# Instala las dependencias del backend
+RUN npm install mongoose mongodb
+
+# Exponer el puerto en el que escucha el servidor de Node.js
+EXPOSE 3000
+
+# Comando para iniciar el servidor Node.js
+CMD ["node", "app.js"]

@@ -1,0 +1,80 @@
+locust -f traffic.py
+
+gcloud container clusters get-credentials cluster-prueba --zone us-central1-a --project primeval-beaker-418301
+
+//NAMESPACE
+ls namespace.yml
+kubectl apply -f namespace.yml
+kubectl get namespace 
+
+//DEPLOYMENTS
+kubectl apply -f deployment.yml
+
+//SERVICES
+kubectl apply -f service.yml
+
+//INGRESES
+kubectl apply -f ingress.yml
+
+//BASE
+kubectl apply -f basemysql.yml
+
+//KAFKA
+    kubectl create ns kafka
+    kubectl get ns
+    kubectl create -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
+    kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka
+    kubectl apply -f /home/isabel/Documents/GitHub/Proyecto2/secrets/
+    kubectl get service -n kafka
+
+vue create front
+
+//Cuenta de Docker 
+USUARIO: isabh17
+CONTRASEÑA: gatitos123456
+
+//Dockercompose servidor
+sudo docker build -t isabh17/grpcservidor .
+sudo docker tag isabh17/grpcservidor:latest isabh17/so1_p2_servidor:first
+docker push isabh17/so1_p2_servidor:first
+
+//Dockercompose cliente
+sudo docker build -t isabh17/grpccliente .
+sudo docker tag isabh17/grpccliente:latest isabh17/so1_p2_cliente:first
+docker push isabh17/so1_p2_cliente:first
+
+//ingress
+kubectl create ns nginx-ingress
+sudo snap install helm --classic
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm install nginx-ingress ingress-nginx/ingress-nginx -n nginx-ingress
+kubectl get services -n nginx-ingress
+
+gcloud auth login
+gcloud container clusters get-credentials cluster-prueba --zone us-central1-a
+kubectl get nodes
+kubectl config set-credentials gke-gcloud-auth-plugin
+
+# Para MongoDB
+docker build -t mongodb-image .
+# Para MongoDB
+docker run -d -p 27017:27017 --name mongodb-container mongodb-image
+
+# Para Redis
+docker build -t redis-image .
+# Para Redis
+docker run -d -p 6379:6379 --name redis-container redis-image
+
+# Docker
+sudo docker build -t isabh17/consumer:v3.3 .
+sudo docker tag isabh17/consumer:v3.3 isabh17/consumer:first
+docker push isabh17/consumer:first
+
+# Consumer
+    go mod init consumer
+    go mod tidy
+    go get -u github.com/confluentinc/confluent-kafka-go/kafka
+    go get -u go.mongodb.org/mongo-driver/mongo
+    go get -u github.com/go-redis/redis/v8
+    go get github.com/go-redis/redis
