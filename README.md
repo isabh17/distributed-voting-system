@@ -1,37 +1,87 @@
-### Univerisad de San Carlos de Guatemala
-### Laboratorio de Sistemas Operativos 1
-### María Isabel Masaya Córdova
-### 201800565
+# Distributed voting system on Kubernetes
 
-#### Introducción
-El proyecto consiste en la implementación de un sistema distribuido de votaciones para un concurso de bandas de música guatemalteca. El objetivo principal es enviar tráfico por medio de archivos con votaciones hacia distintos servicios desplegados en Kubernetes. Estos servicios se encargarán de encolar los datos, almacenarlos en bases de datos y visualizarlos en tiempo real a través de dashboards. Se utilizarán tecnologías como gRPC, Web Assembly (Wasm), Kafka, Redis, MongoDB, Grafana y Cloud Run para lograr este objetivo.
+A distributed system that ingests a high-volume stream of votes, queues it,
+persists it to two different stores and visualizes it in real time — deployed
+as microservices on Kubernetes.
 
-#### Objetivos
-1. Implementar un sistema distribuido con microservicios en Kubernetes.
-2. Utilizar sistemas de mensajería para encolar y distribuir datos entre servicios.
-3. Utilizar Grafana como interfaz gráfica de dashboards para visualizar datos en tiempo real.
-4. Desplegar una API en Node.js y una webapp con Vue.js en Cloud Run para consultar registros de MongoDB.
+Built as a load-handling exercise: the point was not the voting itself, but
+what happens when thousands of requests arrive at once and nothing is allowed
+to be lost.
 
-#### Descripción de Tecnologías Utilizadas
-1. **Kubernetes**: Kubernetes es una plataforma de código abierto diseñada para automatizar el despliegue, escalado y manejo de aplicaciones en contenedores. En este proyecto, Kubernetes se utiliza como plataforma de orquestación para gestionar y desplegar los diferentes servicios del sistema distribuido, garantizando su disponibilidad, escalabilidad y confiabilidad.
-2. **Kafka**: Apache Kafka es una plataforma de streaming distribuido que se utiliza para la ingestión, almacenamiento y procesamiento de flujos de datos en tiempo real. En este proyecto, Kafka actúa como sistema de mensajería para encolar y distribuir datos entre los servicios productores (gRPC y Wasm) y el consumidor. Permite una comunicación asíncrona y tolerante a fallos entre los distintos componentes del sistema.
-3. **Redis**: Redis es una base de datos en memoria de código abierto que se utiliza para almacenar datos de forma rápida y eficiente. En este proyecto, Redis se emplea para almacenar los contadores de votaciones que los consumidores envían en tiempo real. Proporciona un almacenamiento de clave-valor de alto rendimiento y permite la consulta y actualización rápida de datos.
-4. **MongoDB**: MongoDB es una base de datos NoSQL de documentos que se utiliza para almacenar datos de forma flexible y escalable. En este proyecto, MongoDB se utiliza para almacenar los logs generados por el sistema. Proporciona una forma eficiente de almacenar y consultar grandes volúmenes de datos no estructurados, facilitando el análisis y la visualización de los registros de actividad.
-5. **Grafana**: Grafana es una plataforma de análisis y visualización de datos de código abierto que se utiliza para crear dashboards y gráficos interactivos. En este proyecto, Grafana se emplea como interfaz gráfica de dashboards para visualizar los contadores de votaciones en tiempo real almacenados en Redis. Permite crear visualizaciones personalizadas y proporciona herramientas avanzadas para el monitoreo y análisis de datos.
-6. **Cloud Run**: Plataforma de Google Cloud para desplegar servicios en contenedores de forma escalable y gestionada.
+**Stack:** Go · gRPC · Kafka · Redis · MongoDB · Kubernetes · Grafana · Locust · Node.js · Vue · Cloud Run
 
-#### Descripción de Deployment y Service de Kubernetes
-- **Deployment de gRPC y Wasm**: Este Deployment se encarga de desplegar los servicios productores de gRPC y Web Assembly (Wasm). Ambos servicios están empaquetados en contenedores Docker y ejecutados en pods gestionados por Kubernetes. Estos pods pueden escalar horizontalmente según la carga de trabajo para manejar picos de tráfico.
-- **Deployment de Consumidor**: Este Deployment despliega el daemon consumidor, que es responsable de procesar los datos recibidos de los servicios productores. Estos datos se almacenan en bases de datos como Redis y MongoDB para su posterior análisis y consulta. El número de réplicas del consumidor puede ajustarse automáticamente mediante el autoescalado de Kubernetes para garantizar un rendimiento óptimo del sistema.
-- **Service de Kafka**: Este Service define una interfaz de red para acceder al servidor de Kafka desde otros componentes del sistema distribuido. Permite que los servicios productores y consumidores se comuniquen de manera eficiente con el servidor de Kafka para enviar y recibir mensajes en la cola.
-- **Service de Redis y MongoDB**: Estos Services proporcionan una capa de abstracción para acceder a las bases de datos Redis y MongoDB desde cualquier parte del sistema distribuido. Permiten que los servicios productores, consumidores y otros componentes interactúen con las bases de datos de manera transparente, independientemente de su ubicación en el clúster de Kubernetes.
+---
 
-#### Ejemplo de Funcionamiento
-[Ver Ejemplo de Funcionamiento](https://drive.google.com/drive/folders/1p6Za_-bzwUVVi37riiQbuLadXKGuGnm0?usp=drive_link)
+## How the data flows
 
-En este ejemplo, se muestra el dashboard de Grafana con dos gráficas que visualizan los contadores de votaciones en tiempo real almacenados en Redis. Los datos son actualizados automáticamente y proporcionan una visualización dinámica del flujo de votaciones durante el concurso de bandas.
+```
+Locust (load generator)
+      │  thousands of simulated votes
+      ▼
+gRPC client  ──▶  gRPC server          (Go)
+                      │
+                      ▼
+                  Kafka topic           queues and decouples ingestion
+                      │
+                      ▼
+                  Consumer              (Go)
+                   ┌──┴──┐
+                   ▼     ▼
+                 Redis  MongoDB         fast counters / durable records
+                   │      │
+                   ▼      ▼
+                Grafana   Node.js API ──▶ Vue web app   (Cloud Run)
+```
 
-#### Conclusiones
-El proyecto ha logrado implementar con éxito un sistema distribuido de votaciones utilizando tecnologías modernas como Kubernetes, Kafka, Redis, MongoDB y Grafana. Se ha demostrado la viabilidad y eficacia de este enfoque para gestionar y procesar grandes volúmenes de datos en tiempo real. La arquitectura modular y escalable permite adaptarse a diferentes escenarios y requerimientos, proporcionando una base sólida para futuros desarrollos y mejoras en el sistema.
+**Why Kafka in the middle.** Writing straight from the gRPC server to the
+databases means the ingestion rate is capped by the slowest write. The queue
+decouples them: the server only has to publish, and the consumer drains at its
+own pace without dropping votes under a spike.
 
+**Why two stores.** Redis holds the live counters that the dashboards read
+constantly; MongoDB keeps the durable record that the API queries later. Each
+one does what it is good at.
 
+---
+
+## What's in here
+
+| Path | What it is |
+|---|---|
+| `Proyecto2/grpc/` | gRPC client and server in Go, with generated protobuf code |
+| `Proyecto2/consumer/` | Go service that reads from Kafka and writes to Redis and MongoDB |
+| `Proyecto2/kafka/` | Kafka deployment manifests |
+| `Proyecto2/redis/` · `mongo/` | Store deployments and services |
+| `Proyecto2/locust/` | Python load generator that simulates the vote traffic |
+| `Proyecto2/cloudRun/` | Node.js API and Vue front end deployed to Cloud Run |
+| `Proyecto2/ingress/` | ingress-nginx routing |
+| `Proyecto2/deploy.yaml` | Full cluster deployment |
+
+Every service ships with its own `Dockerfile` and Kubernetes manifest.
+
+---
+
+## Running it
+
+Requires a Kubernetes cluster with `kubectl` configured.
+
+```bash
+kubectl apply -f Proyecto2/namespace.yml
+kubectl apply -f Proyecto2/kafka/
+kubectl apply -f Proyecto2/redis/ -f Proyecto2/mongo/
+kubectl apply -f Proyecto2/deploy.yaml
+kubectl apply -f Proyecto2/ingress/
+
+# generate traffic
+locust -f Proyecto2/locust/traffic.py
+```
+
+Configuration lives in Kubernetes secrets (`Proyecto2/secrets/`) — ports, Kafka
+broker address and topic name. No credentials are committed.
+
+---
+
+## Context
+
+Operating Systems 1 course project, Computer Science and Systems Engineering —
+Universidad de San Carlos de Guatemala.
